@@ -19,7 +19,7 @@ sudo: required
 before_script:
 - cd ..
 - julia -e 'using Pkg; Pkg.add(PackageSpec(name="BinaryProvider"))'
-- julia -e 'using Pkg; Pkg.add(PackageSpec(name="BinaryBuilder", rev="master"))'
+- julia -e 'using Pkg; Pkg.add(PackageSpec(name="BinaryBuilder"))'
 script:
 - julia --color=yes LCIOWrapBuilder/.ci/build_tarballs.jl
 - ls -l products/*
