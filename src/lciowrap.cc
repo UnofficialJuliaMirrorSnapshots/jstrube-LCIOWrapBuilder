@@ -2,7 +2,6 @@
 #include <vector>
 #include <iostream>
 
-#include "jlcxx/jlcxx.hpp"
 #include "EVENT/Cluster.h"
 #include "EVENT/LCCollection.h"
 #include "EVENT/LCEvent.h"
@@ -32,6 +31,8 @@
 #include "UTIL/LCRelationNavigator.h"
 #include "UTIL/LCStdHepRdr.h"
 #include "UTIL/LCTrackerConf.h"
+#include "jlcxx/jlcxx.hpp"
+#include "jlcxx/stl.hpp"
 
 using namespace std;
 using namespace jlcxx;
@@ -48,9 +49,6 @@ struct TypedCollection
     TypedCollection(LCCollection* collection) {
         m_coll = collection;
     }
-    // TypedCollection(LCCollectionVec* collection) {
-    //     m_coll = collection;
-    // }
     inline T* getElementAt(size_t i) {
         return static_cast<T*>(m_coll->getElementAt(i));
     }
@@ -84,26 +82,7 @@ namespace jlcxx
 JLCXX_MODULE define_julia_module(jlcxx::Module& lciowrap)
 {
     lciowrap.add_type<LCObject>("LCObject");
-    lciowrap.add_type<vector<string>>("StringVec")
-        .method("size", &StringVec::size);
-    lciowrap.method("at", [](const vector<string>* vec, size_t i) {
-        return vec->at(i);
-    });
-    lciowrap.add_type<vector<float>>("FloatVec")
-        .method("size", &FloatVec::size);
-    lciowrap.method("at", [](const vector<float>* vec, size_t i) {
-        return vec->at(i);
-    });
-    lciowrap.add_type<vector<int>>("IntVec")
-        .method("size", &IntVec::size);
-    lciowrap.method("at", [](const vector<int>* vec, size_t i) {
-        return vec->at(i);
-    });
-    lciowrap.add_type<vector<short>>("ShortVec")
-        .method("size", &ShortVec::size);
-    lciowrap.method("at", [](const vector<short>* vec, size_t i) {
-        return vec->at(i);
-    });
+    jlcxx::stl::apply_stl<LCObject*>(lciowrap);
 
     lciowrap.add_type<LCParameters>("LCParameters")
         .method("getIntVal", &LCParameters::getIntVal)
@@ -118,14 +97,14 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& lciowrap)
         .method("getNInt", &LCParameters::getNInt)
         .method("getNFloat", &LCParameters::getNFloat)
         .method("getNString", &LCParameters::getNString);
-    lciowrap.method("setValue", [](LCParameters* parms, const std::string& key, int value) {
-        return parms->setValue(key, value);
+    lciowrap.method("setValue", [](LCParameters& parms, const std::string& key, int value) {
+        return parms.setValue(key, value);
     });
-    lciowrap.method("setValue", [](LCParameters* parms, const std::string& key, float value) {
-        return parms->setValue(key, value);
+    lciowrap.method("setValue", [](LCParameters& parms, const std::string& key, float value) {
+        return parms.setValue(key, value);
     });
-    lciowrap.method("setValue", [](LCParameters* parms, const std::string& key, const std::string& value) {
-        return parms->setValue(key, value);
+    lciowrap.method("setValue", [](LCParameters& parms, const std::string& key, const std::string& value) {
+        return parms.setValue(key, value);
     });
     // most of the functionality is forwarded to the TypedCollection
     lciowrap.add_type<LCCollection>("LCCollection")
@@ -150,11 +129,6 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& lciowrap)
         .method("setDescription", &LCRunHeaderImpl::setDescription)
         .method("parameters", &LCRunHeaderImpl::parameters);
 
-    lciowrap.add_type<LCObjectVec>("LCObjectVec")
-        .method("size", &LCObjectVec::size);
-    lciowrap.method("at", [](const LCObjectVec& vec, size_t i) {
-        return vec.at(i);
-    });
 
     lciowrap.add_type<ParticleID>("ParticleID")
         .method("getType", &ParticleID::getType)
@@ -162,12 +136,29 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& lciowrap)
         .method("getLikelihood", &ParticleID::getLikelihood)
         .method("getAlgorithmType", &ParticleID::getAlgorithmType)
         .method("getParameters", &ParticleID::getParameters);
-    lciowrap.add_type<ParticleIDVec>("ParticleIDVec")
-        .method("size", &ParticleIDVec::size);
-    lciowrap.method("at", [](const ParticleIDVec& vec, size_t i) {
-        return vec.at(i);
-    });
 
+    jlcxx::stl::apply_stl<ParticleID*>(lciowrap);
+
+    lciowrap.add_type<LCEvent>("LCEvent")
+        .method("getEventCollection", &LCEvent::getCollection)
+        .method("getCollectionNames", &LCEvent::getCollectionNames)
+        .method("getDetectorName", &LCEvent::getDetectorName)
+        .method("getEventNumber", &LCEvent::getEventNumber)
+        .method("getRunNumber", &LCEvent::getRunNumber)
+        .method("getParameters", &LCEvent::getParameters)
+        .method("getWeight", &LCEvent::getWeight);
+
+    lciowrap.add_type<LCEventImpl>("LCEventImpl", jlcxx::julia_type<LCEvent>())
+        .method("setEventNumber", &LCEventImpl::setEventNumber);
+    
+    lciowrap.method("addCollection", [](LCEventImpl& event, LCCollectionVec& col, const std::string& name) {
+        event.addCollection(&col, name);
+        // TODO this is necessary for the time being, otherwise the event tries to delete the collection, but the julia finalizers also try to kill the collection
+        // the event tries to make the collection non-transient after takeCollection, but we may still want to write it out, so keep the state
+        bool isTransient = col.isTransient();
+        event.takeCollection(name);
+        col.setTransient(isTransient);
+    });
     #include "MCParticle.icc"
     #include "CalorimeterHitTypes.icc"
     #include "TrackerHitTypes.icc"
@@ -210,26 +201,6 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& lciowrap)
 
     #include "ReconstructedParticle.icc"
 
-    lciowrap.add_type<LCEvent>("LCEvent")
-        .method("getEventCollection", &LCEvent::getCollection)
-        .method("getCollectionNames", &LCEvent::getCollectionNames)
-        .method("getDetectorName", &LCEvent::getDetectorName)
-        .method("getEventNumber", &LCEvent::getEventNumber)
-        .method("getRunNumber", &LCEvent::getRunNumber)
-        .method("getParameters", &LCEvent::getParameters)
-        .method("getWeight", &LCEvent::getWeight);
-
-    lciowrap.add_type<LCEventImpl>("LCEventImpl", jlcxx::julia_type<LCEvent>())
-        .method("setEventNumber", &LCEventImpl::setEventNumber);
-    lciowrap.method("addCollection", [](LCEventImpl* event, LCCollectionVec* col, const std::string& name) {
-        event->addCollection(col, name);
-        // TODO this is necessary for the time being, otherwise the event tries to delete the collection, but the julia finalizers also try to kill the collection
-        // the event tries to make the collection non-transient after takeCollection, but we may still want to write it out, so keep the state
-        bool isTransient = col->isTransient();
-        event->takeCollection(name);
-        col->setTransient(isTransient);
-    });
-
     lciowrap.add_type<IO::LCReader>("LCReader")
       .method("getNumberOfEvents", &IO::LCReader::getNumberOfEvents)
       .method("getNumberOfRuns", &IO::LCReader::getNumberOfRuns);
@@ -255,12 +226,17 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& lciowrap)
     lciowrap.add_type<IO::LCWriter>("LCWriter")
         .method("setCompressionLevel", &IO::LCWriter::setCompressionLevel)
         .method("close", &IO::LCWriter::close)
-        .method("flush", &IO::LCWriter::flush)
-        .method("writeRunHeader", &IO::LCWriter::writeRunHeader)
-        .method("writeEvent", &IO::LCWriter::writeEvent);
+        .method("flush", &IO::LCWriter::flush);
+    lciowrap.method("writeRunHeader", [](IO::LCWriter* writer, const EVENT::LCRunHeader& hdr) {
+        writer->writeRunHeader(&hdr);
+    });
     lciowrap.method("open", [](IO::LCWriter* writer, const std::string& filename, int writeMode) {
         writer->open(filename, writeMode);
     });
+    lciowrap.method("writeEvent", [](IO::LCWriter* writer, const EVENT::LCEvent& evt) {
+        writer->writeEvent(&evt);
+    });
+
     lciowrap.method("createLCWriter", [](){
         return IOIMPL::LCFactory::getInstance()->createLCWriter();
     });
@@ -270,22 +246,22 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& lciowrap)
 
 
     lciowrap.add_type<Parametric<TypeVar<1>>>("TypedCollection")
-        .apply<TypedCollection<CalorimeterHit>
+        .apply<TypedCollection<LCGenericObject>
+             , TypedCollection<LCRelation>
+             , TypedCollection<CalorimeterHit>
              , TypedCollection<Cluster>
              , TypedCollection<MCParticle>
-             , TypedCollection<LCGenericObject>
-             , TypedCollection<LCRelation>
              , TypedCollection<ReconstructedParticle>
              , TypedCollection<SimCalorimeterHit>
              , TypedCollection<SimTrackerHit>
              , TypedCollection<Track>
              , TypedCollection<TrackerHit>
              , TypedCollection<TrackerRawData>
-             , TypedCollection<Vertex>>([](auto wrapped)
+             , TypedCollection<Vertex>
+             >([](auto wrapped)
         {
         typedef typename decltype(wrapped)::type WrappedColl;
         wrapped.template constructor<LCCollection*>();
-        // wrapped.template constructor<LCCollectionVec*>();
         wrapped.method("getElementAt", &WrappedColl::getElementAt);
         wrapped.method("getNumberOfElements", &WrappedColl::getNumberOfElements);
         wrapped.method("coll", &WrappedColl::coll);
@@ -328,16 +304,17 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& lciowrap)
         .method("getRelatedToWeights", &UTIL::LCRelationNavigator::getRelatedToWeights);
 
     lciowrap.add_type<Parametric<TypeVar<1>>>("CastOperator")
-    .apply<CastOperator<CalorimeterHit>
+    .apply<CastOperator<LCGenericObject>
+         , CastOperator<CalorimeterHit>
          , CastOperator<Cluster>
-         , CastOperator<LCGenericObject>
          , CastOperator<MCParticle>
          , CastOperator<ReconstructedParticle>
          , CastOperator<SimCalorimeterHit>
          , CastOperator<SimTrackerHit>
          , CastOperator<Track>
          , CastOperator<TrackerHit>
-         , CastOperator<Vertex>>([](auto wrapped)
+         , CastOperator<Vertex>
+         >([](auto wrapped)
     {
         typedef typename decltype(wrapped)::type LCType;
         wrapped.method("cast", &LCType::cast);

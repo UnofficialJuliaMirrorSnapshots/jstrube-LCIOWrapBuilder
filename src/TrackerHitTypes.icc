@@ -11,6 +11,9 @@ lciowrap.add_type<EVENT::SimTrackerHit>("SimTrackerHit")
     .method("getTime", &EVENT::SimTrackerHit::getTime)
     .method("isOverlay", &EVENT::SimTrackerHit::isOverlay)
     .method("isProducedBySecondary", &EVENT::SimTrackerHit::isProducedBySecondary);
+
+jlcxx::stl::apply_stl<EVENT::SimTrackerHit*>(lciowrap);
+
 // returns a bool to indicate whether this was a nullptr
 lciowrap.method("getPosition3", [](const EVENT::SimTrackerHit* hit, ArrayRef<double> x)->bool {
     const double* p = hit->getPosition();
@@ -20,6 +23,7 @@ lciowrap.method("getPosition3", [](const EVENT::SimTrackerHit* hit, ArrayRef<dou
         x[2] = p[2];
     return true;
 });
+
 // returns a bool to indicate whether this was a nusllptr
 lciowrap.method("getMomentum3", [](const EVENT::SimTrackerHit* hit, ArrayRef<double> x)->bool {
     const float* p = hit->getMomentum();
@@ -40,6 +44,7 @@ lciowrap.add_type<EVENT::TrackerHit>("TrackerHit")
     .method("getQuality", &EVENT::TrackerHit::getQuality)
     .method("getEDep", &EVENT::TrackerHit::getEDep)
     .method("getEDepError", &EVENT::TrackerHit::getEDepError);
+
 // returns a bool to indicate whether this was a nullptr
 lciowrap.method("getPosition3", [](const EVENT::TrackerHit* hit, ArrayRef<double> x)->bool {
     const double* p = hit->getPosition();
@@ -50,12 +55,7 @@ lciowrap.method("getPosition3", [](const EVENT::TrackerHit* hit, ArrayRef<double
     return true;
 });
 
-lciowrap.add_type<EVENT::TrackerHitVec>("TrackerHitVec")
-    .method("size", &EVENT::TrackerHitVec::size);
-lciowrap.method("at", [](const EVENT::TrackerHitVec& vec, size_t i) {
-    return vec.at(i);
-});
-
+jlcxx::stl::apply_stl<EVENT::TrackerHit*>(lciowrap);
 
 lciowrap.add_type<EVENT::TrackerData>("TrackerData")
     .method("getCellID0", &EVENT::TrackerData::getCellID0)

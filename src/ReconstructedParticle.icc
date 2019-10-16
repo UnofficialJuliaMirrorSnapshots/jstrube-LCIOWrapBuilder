@@ -34,12 +34,8 @@ lciowrap.method("getParticleIDUsed", [](){
     cerr << "not yet implemented" << endl;
 });
 
-lciowrap.add_type<EVENT::ReconstructedParticleVec>("ReconstructedParticleVec")
-    .method("size", &EVENT::ReconstructedParticleVec::size);
-lciowrap.method("at", [](const EVENT::ReconstructedParticleVec& vec, size_t i) {
-    return vec.at(i);
-});
+jlcxx::stl::apply_stl<EVENT::ReconstructedParticle*>(lciowrap);
 
-lciowrap.method("getParticles", [](const EVENT::ReconstructedParticle* p)->const ReconstructedParticleVec& {
+lciowrap.method("getParticles", [](const EVENT::ReconstructedParticle* p)->const std::vector<EVENT::ReconstructedParticle*>& {
     return p->getParticles();
 });

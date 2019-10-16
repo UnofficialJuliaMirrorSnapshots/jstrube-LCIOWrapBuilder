@@ -37,11 +37,9 @@ lciowrap.add_type<EVENT::TrackState>("TrackState")
     .method("getZ0", &EVENT::TrackState::getZ0)
     .method("getTanLambda", &EVENT::TrackState::getTanLambda)
     .method("getCovMatrix", &EVENT::TrackState::getCovMatrix);
-lciowrap.add_type<EVENT::TrackStateVec>("TrackStateVec")
-    .method("size", &EVENT::TrackStateVec::size);
-lciowrap.method("at", [](const EVENT::TrackStateVec& vec, size_t i) {
-    return vec.at(i);
-});
+
+jlcxx::stl::apply_stl<EVENT::TrackState*>(lciowrap);
+
 lciowrap.method("getReferencePoint3", [](const EVENT::TrackState* t, ArrayRef<double> x)->bool {
     const float* p3 = t->getReferencePoint();
     if (not p3) {return false;}
@@ -50,7 +48,6 @@ lciowrap.method("getReferencePoint3", [](const EVENT::TrackState* t, ArrayRef<do
     x[2] = p3[2];
     return true;
 });
-
 
 lciowrap.add_type<EVENT::Track>("Track")
     .method("getType", &EVENT::Track::getType)
@@ -70,11 +67,8 @@ lciowrap.add_type<EVENT::Track>("Track")
     .method("getTrackState", &EVENT::Track::getTrackState)
     .method("getTrackerHits", &EVENT::Track::getTrackerHits);
 
-lciowrap.add_type<EVENT::TrackVec>("TrackVec")
-    .method("size", &EVENT::TrackVec::size);
-lciowrap.method("at", [](const EVENT::TrackVec& vec, size_t i) {
-    return vec.at(i);
-});
+jlcxx::stl::apply_stl<EVENT::Track*>(lciowrap);
+
 lciowrap.method("getReferencePoint3", [](const EVENT::Track* t, ArrayRef<double> x)->bool {
     const float* p3 = t->getReferencePoint();
     if (not p3) {return false;}
@@ -83,9 +77,10 @@ lciowrap.method("getReferencePoint3", [](const EVENT::Track* t, ArrayRef<double>
     x[2] = p3[2];
     return true;
 });
-lciowrap.method("getTracks", [](const Track* t)->const TrackVec& {
+lciowrap.method("getTracks", [](const Track* t)->const std::vector<EVENT::Track*>& {
     return t->getTracks();
 });
-lciowrap.method("getTrackStates", [](const Track* t)->const TrackStateVec& {
+
+lciowrap.method("getTrackStates", [](const Track* t)->const std::vector<EVENT::TrackState*>& {
     return t->getTrackStates();
 });

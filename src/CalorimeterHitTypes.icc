@@ -46,8 +46,4 @@ lciowrap.method("getRawHit", [](const EVENT::CalorimeterHit* hit)->RawCalorimete
 });
 
 
-lciowrap.add_type<EVENT::CalorimeterHitVec>("CalorimeterHitVec")
-    .method("size", &EVENT::CalorimeterHitVec::size);
-lciowrap.method("at", [](const EVENT::CalorimeterHitVec& vec, size_t i) {
-    return vec.at(i);
-});
+jlcxx::stl::apply_stl<EVENT::CalorimeterHit*>(lciowrap);

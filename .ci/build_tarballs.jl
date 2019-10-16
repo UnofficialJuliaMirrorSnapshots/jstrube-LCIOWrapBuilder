@@ -34,7 +34,7 @@ products(prefix) = [
 
 # Dependencies that must be installed before this package can be built
 dependencies = [
-	"https://github.com/JuliaInterop/libcxxwrap-julia/releases/download/v0.6.0/build_libcxxwrap-julia-1.0.v0.6.0.jl"
+	"https://github.com/JuliaInterop/libcxxwrap-julia/releases/download/v0.6.2/build_libcxxwrap-julia-1.0.v0.6.2.jl"
 	"https://github.com/JuliaPackaging/JuliaBuilder/releases/download/v1.0.0-2/build_Julia.v1.0.0.jl"
 	"https://github.com/jstrube/LCIOBuilder/releases/download/v2.12.1-4/build_LCIOBuilder.v2.12.1-4.jl"
 ]

@@ -17,18 +17,18 @@ lciowrap.add_type<EVENT::MCParticle>("MCParticle")
     .method("getMass", &EVENT::MCParticle::getMass)
     .method("getCharge", &EVENT::MCParticle::getCharge);
 
-lciowrap.add_type<EVENT::MCParticleVec>("MCParticleVec")
-    .method("size", &EVENT::MCParticleVec::size);
-lciowrap.method("at", [](const EVENT::MCParticleVec& vec, size_t i) {
-        return vec.at(i);
-});
+jlcxx::stl::apply_stl<EVENT::MCParticle*>(lciowrap);
 
-lciowrap.method("getParents", [](const EVENT::MCParticle* p)->const EVENT::MCParticleVec& {
+// These methods have to be declared separately from the type MCParticle, so that CxxWrap
+// can generate the type and generate the templates specializations for the std::vector,
+// which are returned by the methods here
+lciowrap.method("getParents", [](const EVENT::MCParticle* p)->const std::vector<EVENT::MCParticle*>& {
     return p->getParents();
 });
-lciowrap.method("getDaughters", [](const EVENT::MCParticle* p)->const EVENT::MCParticleVec& {
+lciowrap.method("getDaughters", [](const EVENT::MCParticle* p)->const std::vector<EVENT::MCParticle*>& {
     return p->getDaughters();
 });
+
 // returns a bool to indicate whether this was a nullptr
 lciowrap.method("getVertex3", [](const EVENT::MCParticle* p, ArrayRef<double> v)->bool {
     const double* vtx = p->getVertex();
@@ -78,18 +78,19 @@ lciowrap.add_type<UTIL::LCStdHepRdr>("_LCStdHepRdrCpp")
     .method("readEvent", &UTIL::LCStdHepRdr::readEvent)
     .method("updateNextEvent", &UTIL::LCStdHepRdr::updateNextEvent);
 
-lciowrap.add_type<IMPL::MCParticleImpl>("MCParticleImpl")
+    
+lciowrap.add_type<IMPL::MCParticleImpl>("MCParticleImpl", jlcxx::julia_type<MCParticle>())
     .method("setGeneratorStatus", &IMPL::MCParticleImpl::setGeneratorStatus)
     .method("setMass", &IMPL::MCParticleImpl::setMass)
     .method("setPDG", &IMPL::MCParticleImpl::setPDG)
     .method("setCharge", &IMPL::MCParticleImpl::setCharge);
-lciowrap.method("setMomentum", [](IMPL::MCParticleImpl* mcp, const ArrayRef<double> p3) {
+lciowrap.method("setMomentum", [](IMPL::MCParticleImpl& mcp, const ArrayRef<double> p3) {
     double mom[] = {p3[0], p3[1], p3[2]};
-    mcp->setMomentum(mom);
+    mcp.setMomentum(mom);
 });
 
-lciowrap.method("addElement", [](IMPL::LCCollectionVec* coll, IMPL::MCParticleImpl* mcp) {
+lciowrap.method("addElement", [](IMPL::LCCollectionVec& coll, IMPL::MCParticleImpl& mcp) {
     // TODO: For the time being we have to copy things that go into the
     // collection, because it owns it and wants to kill its members
-    coll->addElement(new MCParticleImpl(*mcp));
+    coll.addElement(new MCParticleImpl(mcp));
 });

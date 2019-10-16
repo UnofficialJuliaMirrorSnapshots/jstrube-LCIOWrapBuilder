@@ -14,13 +14,11 @@ lciowrap.add_type<EVENT::Cluster>("Cluster")
     .method("getHitContributions", &EVENT::Cluster::getHitContributions)
     .method("getSubdetectorEnergies", &EVENT::Cluster::getSubdetectorEnergies);
 
-lciowrap.add_type<EVENT::ClusterVec>("ClusterVec")
-    .method("size", &EVENT::ClusterVec::size);
-lciowrap.method("at", [](const EVENT::ClusterVec& vec, size_t i) {
-    return vec.at(i);
-});
+// first, generate the template specialization
+jlcxx::stl::apply_stl<EVENT::Cluster*>(lciowrap);
 
-lciowrap.method("getClusters", [](const EVENT::Cluster* c)->const ClusterVec& {
+// then we can add methods that use std:: collections
+lciowrap.method("getClusters", [](const EVENT::Cluster* c)->const std::vector<Cluster*>& {
     return c->getClusters();
 });
 
